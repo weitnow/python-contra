@@ -1,20 +1,47 @@
 import pygame
 from settings import *
 from pygame.math import Vector2 as vector
-from entity import Entity
+from os import walk
 
-class Player(Entity):
+
+class Player(pygame.sprite.Sprite):
     def __init__(self, pos, groups, path, collision_sprites, shoot):
-        super().__init__(pos, path, groups, shoot)
+        super().__init__(groups)
+        self.import_assets(path)
+        self.frame_index = 0
+        self.status = 'right'
+        self.image = self.animations[self.status][self.frame_index]
+
+        self.rect = self.image.get_rect(topleft=pos)
+        self.z = LAYERS['Level']
+
+        self.direction = vector()
+        self.pos = vector(self.rect.topleft)
+        self.speed = 400
 
         # collision
+        self.old_rect = self.rect.copy()
         self.collision_sprites = collision_sprites
 
         # vertical movement
         self.gravity = 15
         self.jump_speed = 1500
         self.on_floor = False
+        self.duck = False
         self.moving_floor = None
+
+        # interaction
+        self.shoot = shoot
+        # create a bullet timer
+        self.can_shoot = True
+        self.shoot_time = None
+        self.cooldown = 200
+
+    def shoot_timer(self):
+        if not self.can_shoot:
+            current_time = pygame.time.get_ticks()
+            if current_time - self.shoot_time > self.cooldown:
+                self.can_shoot = True
 
     def get_status(self):
         # idle
@@ -36,6 +63,26 @@ class Player(Entity):
                     self.on_floor = True
                 if hasattr(sprite, 'direction'): #only moving platform has a direction
                     self.moving_floor = sprite
+
+    def import_assets(self, path):
+        self.animations = {}
+        for index, folder in enumerate(walk(path)):
+            if index == 0:
+                for name in folder[1]:
+                    self.animations[name] = []
+            else:
+                for file_name in sorted(folder[2], key=lambda string: int(string.split('.')[0])):
+                    path = folder[0].replace('\\', '/') + '/' + file_name
+                    surf = pygame.image.load(path).convert_alpha()
+                    key = folder[0].split('/')[3]
+                    self.animations[key].append(surf)
+
+    def animate(self, dt):
+        self.frame_index += 7 * dt
+        if self.frame_index >= len(self.animations[self.status]):
+            self.frame_index = 0
+
+        self.image = self.animations[self.status][int(self.frame_index)]
 
     def input(self):
         keys = pygame.key.get_pressed()
@@ -65,6 +112,7 @@ class Player(Entity):
 
             self.can_shoot = False
             self.shoot_time = pygame.time.get_ticks()
+
 
     def collision(self, direction):
         for sprite in self.collision_sprites.sprites():
