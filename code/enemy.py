@@ -19,6 +19,7 @@ class Enemy(Entity):
         else:
             self.status = 'right'
 
+
     def check_fire(self):
         enemy_pos = vector(self.rect.center)
         player_pos = vector(self.player.rect.center)
