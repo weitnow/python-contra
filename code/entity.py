@@ -2,6 +2,7 @@ import pygame
 from pygame.math import Vector2 as vector
 from settings import *
 from os import walk
+import platform
 
 class Entity(pygame.sprite.Sprite):
     def __init__(self, pos, path, groups, shoot):
@@ -40,7 +41,10 @@ class Entity(pygame.sprite.Sprite):
                 for file_name in sorted(folder[2], key=lambda string: int(string.split('.')[0])):
                     path = folder[0].replace('\\', '/') + '/' + file_name
                     surf = pygame.image.load(path).convert_alpha()
-                    key = folder[0].split('/')[3]
+                    if platform.system() == "Windows":
+                        key = folder[0].split('\\')[1]
+                    else:
+                        key = folder[0].split('/')[3]
                     self.animations[key].append(surf)
 
     def shoot_timer(self):
