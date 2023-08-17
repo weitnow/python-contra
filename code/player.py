@@ -1,27 +1,17 @@
-import pygame
+import pygame, sys
 from settings import *
 from pygame.math import Vector2 as vector
 from os import walk
 import platform
+from entity import Entity
 
 
-class Player(pygame.sprite.Sprite):
+
+class Player(Entity):
     def __init__(self, pos, groups, path, collision_sprites, shoot):
-        super().__init__(groups)
-        self.import_assets(path)
-        self.frame_index = 0
-        self.status = 'right'
-        self.image = self.animations[self.status][self.frame_index]
-
-        self.rect = self.image.get_rect(topleft=pos)
-        self.z = LAYERS['Level']
-
-        self.direction = vector()
-        self.pos = vector(self.rect.topleft)
-        self.speed = 400
-
+        super().__init__(pos, path, groups, shoot)
+      
         # collision
-        self.old_rect = self.rect.copy()
         self.collision_sprites = collision_sprites
 
         # vertical movement
@@ -30,6 +20,8 @@ class Player(pygame.sprite.Sprite):
         self.on_floor = False
         self.duck = False
         self.moving_floor = None
+
+        self.health = 10
 
         # interaction
         self.shoot = shoot
@@ -110,9 +102,10 @@ class Player(pygame.sprite.Sprite):
 
         if keys[pygame.K_SPACE] and self.can_shoot:
             direction = vector(1, 0) if self.status.split('_')[0] == 'right' else vector(-1,0)
-            pos = self.rect.center + direction * 60
+            pos = self.rect.center + direction * 65
             y_offset = vector(0, -16) if not self.duck else vector(0,10)
             self.shoot(pos + y_offset, direction,self)
+            self.shoot_sound.play()
 
             self.can_shoot = False
             self.shoot_time = pygame.time.get_ticks()
@@ -166,13 +159,26 @@ class Player(pygame.sprite.Sprite):
         self.collision('vertical')
         self.moving_floor = None
 
+    def check_death(self):
+        if self.health <= 0:
+            pygame.quit()
+            sys.exit()
+
     def update(self, dt):
         self.old_rect = self.rect.copy()
         self.input()
         self.get_status()
         self.move(dt)
         self.check_contact()
+
         self.animate(dt)
+        self.blink()
 
         #timer
         self.shoot_timer()
+        self.invul_timer()
+
+        # death
+        self.check_death()
+
+        
